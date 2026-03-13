@@ -1,0 +1,626 @@
+
+**************************************************************************
+Java Multithreading
+https://www.youtube.com/watch?v=F2nuvXJHYxQ. -
+Title - Java Multithreading Crash Course – Quick Revision for Interviews | Important Interview Topics!
+
+See above video for more understanding.
+
+**************************************************************************
+
+Q 1) What is Shutdown hook in java
+A shutdown hook in Java is a special construct that lets you register a piece of code (usually a thread) to run when the Java Virtual Machine (JVM) is shutting down. It’s often used for cleanup tasks like closing resources, saving state, or logging final messages.
+
+🔑 Key Points
+	•	Definition: A shutdown hook is an initialized but unstarted thread that the JVM runs during its shutdown sequence.
+	•	When JVM shuts down:
+	◦	Controlled shutdown:
+	▪	System.exit() is called
+	▪	The last non-daemon thread finishes
+	▪	User interrupts with Ctrl+C
+	◦	Abrupt shutdown:
+	▪	OS kill signal
+	▪	Runtime.getRuntime().halt()
+	▪	System crash/panic
+	•	Execution:
+	◦	All registered shutdown hooks run concurrently in an unspecified order.
+	◦	Daemon threads continue running during shutdown.
+	◦	Once hooks finish, JVM halts.
+
+🛠️ How to Register a Shutdown Hook
+java
+
+public class ShutdownHookExample {
+    public static void main(String[] args) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutdown hook executed: Cleaning up resources...");
+        }));
+
+        System.out.println("Application is running...");
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println("Application exiting...");
+    }
+}
+
+⚠️ Important Notes
+	•	Hooks should be short and fast — long-running tasks may delay shutdown.
+	•	They are not guaranteed to run in cases like kill -9 (force kill).
+	•	You can register multiple hooks, but their execution order is not defined.
+	•	Hooks are useful for:
+	◦	Closing DB connections
+	◦	Flushing logs
+	◦	Releasing locks
+	◦	Saving application state
+	•	Graceful Resource Cleanup
+	•	Closing database connections, file handles, or sockets before JVM exits.
+	•	Example: In a microservice, you can ensure the connection pool (HikariCP, DBCP) is properly closed to avoid resource leaks.
+	•	java
+	•
+	•	Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+	•	    System.out.println("Closing DB connections...");
+	•	    dataSource.close();
+	•	}));
+	•
+
+================================
+Q2 ) What is daemon Thread?
+
+A daemon thread in Java is a special type of thread that runs in the background to provide services to other threads, but it does not prevent the JVM from exiting.
+
+🔑 Key Characteristics
+	•	Background service thread: Runs tasks like garbage collection, monitoring, or housekeeping.
+	•	Lifecycle tied to JVM: When all non-daemon (user) threads finish, the JVM terminates — even if daemon threads are still running.
+	•	Created by setting flag: java   Thread t = new Thread(() -> {
+	•	    while (true) {
+	•	        System.out.println("Daemon thread running...");
+	•	    }
+	•	});
+	•	t.setDaemon(true);  // must be set before start()
+	•	t.start();
+	•	   
+	•	Must be set before start(): Calling setDaemon(true) after start() throws IllegalThreadStateException.
+
+⚙️ Examples
+	•	Garbage Collector: Runs as a daemon thread.
+	•	Background log flusher: A daemon thread could periodically flush logs to disk.
+	•	Monitoring tasks: Health checks or cleanup tasks that don’t need to block JVM shutdown.
+
+⚠️ Important Notes
+	•	Daemon threads should not be used for critical tasks (like saving data), because they may be killed abruptly when JVM exits.
+	•	JVM exits when only daemon threads remain.
+	•	Daemon threads are useful for non-essential background work.
+
+🎯 Interview Angles
+	•	What is a daemon thread?
+	•	Difference between daemon and user threads?
+	◦	User threads keep JVM alive; daemon threads don’t.
+	•	Can you make the main thread a daemon?
+	◦	No, the main thread is always a user thread.
+	•	Why shouldn’t you rely on daemon threads for important work?
+	◦	Because they may terminate suddenly when JVM exits.
+
+👉 In short: Daemon threads are background service threads that don’t block JVM termination. They’re great for housekeeping, but unsafe for critical logic.
+
+
+📊 Daemon vs User Threads in Java
+Aspect
+User Thread
+Daemon Thread
+Purpose
+Executes application logic (e.g., request handling, business tasks)
+Provides background services (e.g., garbage collection, housekeeping)
+JVM Lifecycle
+JVM keeps running until all user threads finish
+JVM exits once only daemon threads remain
+Default Type
+Threads are user threads by default
+Must explicitly set with setDaemon(true) before start()
+Critical Work
+Suitable for critical tasks (saving data, processing requests)
+Not suitable for critical tasks — may terminate abruptly
+Examples
+Main thread, worker threads in thread pools
+Garbage collector, background log flusher
+Termination
+JVM waits for user threads to complete
+JVM does not wait — daemon threads are killed when JVM exits
+Conversion
+Can be converted to daemon before start
+Cannot change after thread has started (IllegalThreadStateException)
+
+
+🎯 Interview Angles
+	•	“What is a daemon thread?” → A background thread that doesn’t prevent JVM shutdown.
+	•	“Difference between daemon and user threads?” → User threads keep JVM alive; daemon threads don’t.
+	•	“Can you make the main thread a daemon?” → No, the main thread is always a user thread.
+	•	“Why shouldn’t you rely on daemon threads for important work?” → Because they may terminate suddenly when JVM exits.
+
+👉 In short: User threads = essential work, JVM waits. Daemon threads = background work, JVM doesn’t wait.
+“Daemon threads are ideal for non-critical background tasks like log flushing, cache cleanup, or sending periodic health metrics. For example, in a microservice, I might use a daemon thread to clean up expired sessions or push monitoring data. Since daemon threads don’t prevent JVM shutdown, they’re perfect for housekeeping tasks, but I’d avoid them for critical operations like persisting data because they can be terminated abruptly.”
+==============================================================================================
+
+
+Q3). What is Garbage collection?
+Read it from javatpoint - https://www.tpointtech.com/garbage-collection-in-java
+
+https://www.youtube.com/watch?v=Boei7vAu4Cc
+
+Garbage Collection in Java
+🔹 What is Garbage Collection?
+Garbage Collection (GC) in Java is an automatic memory management mechanism provided by the JVM that identifies and removes objects from the heap that are no longer in use (i.e., not reachable), thereby freeing memory and preventing memory leaks.
+In simple terms:
+GC automatically deletes unused objects so developers don’t have to manually free memory.
+
+How Garbage Collection Works (Internal Flow)
+1️⃣ Memory Areas Involved
+GC mainly works in the Heap, which is divided into:
+	•	Young Generation (Eden + Survivor spaces)
+	•	Old (Tenured) Generation
+	•	Metaspace (class metadata, not typical object GC)
+Object Lifecycle
+	1	New objects → created in Eden
+	2	Surviving objects → moved to Survivor spaces
+	3	Long-lived objects → promoted to Old Generation
+	4	Old objects → cleaned during Major/Full GC
+
+2️⃣ Reachability Analysis (Core Logic)
+JVM uses a Reachability Analysis Algorithm to decide whether an object is eligible for GC.
+GC Roots (Starting Points)
+Objects are considered “alive” if reachable from:
+	•	Local variables in stack
+	•	Static variables
+	•	Active threads
+	•	JNI references
+If an object is not reachable from any GC Root → eligible for garbage collection.
+
+3️⃣ GC Phases (Mark–Sweep–Compact)
+	1	Mark – Find reachable objects
+	2	Sweep – Remove unreachable objects
+	3	Compact – Defragment memory by moving objects together
+
+4️⃣ Types of GC Events
+GC Type
+Area Cleaned
+When Triggered
+Minor GC
+Young Gen
+Eden space full
+Major GC
+Old Gen
+Old gen full
+Full GC
+Entire Heap
+Allocation failure / explicit request
+
+5️⃣ Stop-The-World (STW)
+During GC, application threads pause to ensure consistency. This pause is called Stop-The-World and impacts latency.
+
+6️⃣ Example
+
+User user = new User(); // Object created in heap
+user = null;            // No reference → eligible for GC
+
+GC does not run immediately; JVM decides optimal time.
+
+Types of References (Important for GC Behavior)
+	•	Strong Reference → Normal reference, not GC’d
+	•	WeakReference → GC in next cycle
+	•	SoftReference → GC when memory is low
+	•	PhantomReference → Used for post-GC cleanup tracking
+
+Frequently Asked Interview Questions with Answers
+1. What is Garbage Collection in Java?
+Answer: Garbage Collection is an automatic memory management process in JVM that removes objects that are no longer reachable, freeing heap memory and preventing memory leaks.
+
+2. How does JVM decide which objects to remove?
+Answer: JVM performs reachability analysis from GC Roots (stack variables, static fields, threads). Objects not reachable from these roots are marked for garbage collection.
+
+3. What are GC Roots?
+Answer: GC Roots are references used as starting points for reachability analysis:
+	•	Local variables in stack frames
+	•	Static variables
+	•	Active threads
+	•	JNI references
+
+4. Difference between Minor GC and Major GC?
+Answer:
+	•	Minor GC: Cleans Young Generation (fast & frequent)
+	•	Major GC: Cleans Old Generation (slower)
+	•	Full GC: Cleans entire heap (most expensive)
+
+5. Can we force Garbage Collection?
+Answer: No. Calling System.gc() only suggests JVM to run GC; execution is not guaranteed.
+
+6. What is Stop-The-World pause?
+Answer: It is a pause during GC where all application threads are temporarily stopped so JVM can safely perform memory cleanup.
+
+7. Why do memory leaks still happen in Java?
+Answer: Because objects may still be referenced unintentionally (e.g., static collections, caches, listeners). GC only removes unreachable objects, not unused-but-referenced ones.
+
+8. What is the difference between WeakReference and SoftReference?
+Answer:
+	•	WeakReference: Collected in next GC cycle
+	•	SoftReference: Collected only when memory is low (useful for caches)
+
+9. What triggers a Full GC?
+Answer:
+	•	Old generation space full
+	•	Explicit System.gc() call
+	•	Allocation failure
+	•	Metaspace overflow
+
+10. How to check if GC is causing performance issues?
+Answer: Enable GC logs (-Xlog:gc), analyze pause times, and monitor using tools like VisualVM or JConsole. Frequent Full GC or long pauses indicate GC tuning is needed.
+
+11. Which GC is best for microservices?
+Answer: G1 GC is commonly preferred because it provides predictable pause times and handles large heaps efficiently. Low-latency systems may use ZGC or Shenandoah.
+
+12. What happens if objects survive multiple Minor GCs?
+Answer: They are promoted from Young Generation to Old Generation (Tenured space).
+
+One-Line Interview Summary
+Garbage Collection in Java is the JVM’s automatic process that identifies unreachable objects using reachability analysis from GC Roots and reclaims heap memory to optimize performance and prevent memory leaks.
+
+
+
+==================================================================
+
+What is ZGC garbage collector?
+
+What is ZGC (Z Garbage Collector)?
+ZGC (Z Garbage Collector) is a low-latency, scalable garbage collector introduced in Java to handle large heap sizes (multi-GB to TB) with very short pause times (typically <10 ms), regardless of heap size.
+It is designed for:
+	•	High-throughput, low-latency applications
+	•	Microservices, real-time systems, trading platforms, large-scale backend systems
+
+Key Idea of ZGC
+ZGC performs most of its work concurrently with application threads, minimizing Stop-The-World (STW) pauses.
+Unlike traditional collectors (Parallel, CMS, G1), ZGC keeps pause times consistently low even with very large heaps.
+
+How ZGC Works Internally
+ZGC uses:
+1️⃣ Colored Pointers
+ZGC attaches metadata (color bits) to object references to track object states during GC without stopping the application.
+Colors indicate:
+	•	Marked
+	•	Remapped
+	•	Relocated
+This allows concurrent marking and relocation of objects safely.
+
+2️⃣ Concurrent Phases (Core Flow)
+ZGC performs almost all GC work concurrently:
+	1	Pause (short) → Root marking
+	2	Concurrent marking → find live objects
+	3	Concurrent relocation → move objects to new regions
+	4	Concurrent remapping → update references
+Only very small pauses occur at start/end.
+
+3️⃣ Region-Based Heap (Like G1 but better)
+Heap is divided into regions (ZPages). Objects are relocated to avoid fragmentation without long pauses.
+
+ZGC Characteristics
+Feature
+Description
+Pause Time
+< 10 ms (very low)
+Heap Size Support
+From MB to multiple TB
+Latency
+Ultra low
+Throughput
+Slightly lower than Parallel GC
+Compaction
+Concurrent (no long pauses)
+Fragmentation
+Minimal
+
+When to Use ZGC
+Use ZGC when:
+	•	Large heap (>8GB)
+	•	Strict latency requirements
+	•	Microservices with high request concurrency
+	•	Real-time financial/payment systems
+Avoid when:
+	•	Small heap apps
+	•	Maximum throughput is more important than latency
+
+JVM Option to Enable ZGC
+
+-XX:+UseZGC
+
+
+ZGC vs G1 GC (Important Interview Comparison)
+Feature
+ZGC
+G1 GC
+Pause Time
+<10ms consistent
+Variable
+Heap Size
+Huge heaps (TBs)
+Large heaps (GBs)
+Compaction
+Concurrent
+Stop-the-world mixed
+Latency
+Ultra-low
+Moderate
+Use Case
+Low-latency systems
+General microservices
+
+Interview Questions with Answers
+1. What is ZGC in Java?
+Answer: ZGC is a low-latency garbage collector designed for large heap applications that performs most GC work concurrently, keeping pause times consistently under 10ms.
+
+2. How is ZGC different from G1 GC?
+Answer: ZGC focuses on ultra-low latency with concurrent relocation and colored pointers, while G1 provides balanced throughput and latency but may have longer pause times.
+
+3. What are Colored Pointers in ZGC?
+Answer: Colored pointers store metadata bits within object references to track marking and relocation states, enabling concurrent GC without long pauses.
+
+4. Does ZGC stop application threads?
+Answer: Yes, but only for very short pauses (usually <10ms) during root marking and final remapping phases.
+
+5. Why is ZGC suitable for microservices?
+Answer: Because it ensures predictable low latency and avoids long GC pauses, which helps maintain consistent API response times in high-concurrency systems.
+
+6. What is the main trade-off of ZGC?
+Answer: ZGC provides very low latency but may have slightly lower throughput compared to Parallel GC due to concurrent processing overhead.
+
+7. When should you NOT use ZGC?
+Answer: For small heap applications or batch processing systems where maximum throughput is more important than latency.
+
+One-Line Summary for Interviews
+ZGC is a scalable, low-latency garbage collector that performs most memory management concurrently using colored pointers and region-based heap management to keep pause times consistently below 10 milliseconds.
+========================================================================
+
+what is garbage collection in java. how it works provide me interview questions with answers of it
+
+Great question — Garbage Collection (GC) is one of the most important JVM topics for interviews. Let’s break it down clearly, then I’ll give you interview-style Q&A so you can prepare deeply.
+
+🗑️ Garbage Collection in Java
+1. What It Is
+	•	Definition: Garbage Collection is Java’s automatic memory management process. It reclaims memory by removing objects that are no longer reachable by any live thread.
+	•	Why It Exists: Unlike C/C++, developers don’t manually free memory. GC prevents memory leaks and optimizes heap usage.
+
+2. How It Works
+	•	Heap Memory: Objects are created in the heap. GC monitors heap usage.
+	•	Reachability Analysis: GC determines if an object is “reachable” from GC roots (like local variables, static references, active threads). If not, it’s eligible for collection.
+	•	Generational Heap:
+	◦	Young Generation: Newly created objects. Collected frequently (Minor GC).
+	◦	Old Generation (Tenured): Long-lived objects. Collected less often (Major GC).
+	◦	Permanent Generation / Metaspace: Class metadata.
+	•	GC Algorithms:
+	◦	Mark-and-Sweep: Marks reachable objects, sweeps unreferenced ones.
+	◦	Copying: Copies live objects to a new space, clears old.
+	◦	Compacting: Rearranges objects to avoid fragmentation.
+
+3. Types of Garbage Collectors
+	•	Serial GC: Single-threaded, good for small apps.
+	•	Parallel GC: Multi-threaded, throughput-oriented.
+	•	CMS (Concurrent Mark-Sweep): Low pause times, concurrent collection.
+	•	G1 GC (Garbage First): Region-based, balances throughput and pause times.
+	•	ZGC / Shenandoah: Ultra-low pause collectors for large heaps.
+
+🎯 Interview Questions & Answers
+Q1: What is garbage collection in Java?
+A: It’s the automatic process by which JVM reclaims memory from objects that are no longer reachable.
+
+Q2: Why is garbage collection important?
+A: It prevents memory leaks, optimizes heap usage, and frees developers from manual memory management.
+
+Q3: How does JVM decide which objects to collect?
+A: JVM uses reachability analysis from GC roots. If an object cannot be reached, it’s eligible for GC.
+
+Q4: What are Minor GC and Major GC?
+A:
+	•	Minor GC: Cleans the Young Generation. Fast and frequent.
+	•	Major GC: Cleans Old Generation. Slower, can cause longer pauses.
+
+Q5: Explain different garbage collectors in Java.
+A:
+	•	Serial GC: Single-threaded, simple.
+	•	Parallel GC: Multi-threaded, throughput-focused.
+	•	CMS: Concurrent, reduces pause times.
+	•	G1 GC: Region-based, balances throughput and latency.
+	•	ZGC/Shenandoah: Low-latency collectors for huge heaps.
+
+Q6: What is the drawback of garbage collection?
+A: GC can cause stop-the-world pauses where all application threads freeze until collection completes.
+
+Q7: How can you request garbage collection manually?
+A: By calling System.gc(). But it’s only a hint — JVM may ignore it.
+
+Q8: What is memory leak in Java if GC exists?
+A: Memory leaks happen when objects remain reachable (e.g., stored in static collections) even though they’re no longer needed. GC cannot reclaim them.
+
+Q9: What is the difference between finalize() and GC?
+A:
+	•	finalize() is a method called before GC reclaims an object.
+	•	It’s unreliable and deprecated in modern Java.
+	•	GC is the actual memory reclamation process.
+
+Q10: How do you tune garbage collection?
+A: By setting JVM options like:
+	•	-Xms / -Xmx (heap size)
+	•	-XX:+UseG1GC (choose GC algorithm)
+	•	-XX:MaxGCPauseMillis (pause time goals)
+
+🛠️ Practical Prep
+	•	Run apps with different GC algorithms (-XX:+UseSerialGC, -XX:+UseG1GC) and observe logs.
+	•	Use tools like VisualVM, JConsole, or GC logs to monitor GC behavior.
+	•	Be ready to explain trade-offs: throughput vs latency.
+
+✅ This covers theory, internals, and interview Q&A.
+Would you like me to also prepare a GC tuning cheat sheet (with JVM flags and when to use each collector) so you can answer optimization questions confidently?
+================================================
+
+Q Explain memory management in java in details
+
+https://www.youtube.com/watch?v=vz6vSZRuS2M.  - This YouTube video explanation is best to understand memory management.
+Java Memory Management and Garbage Collection in Depth. - YouTube video title
+========================================================
+
+Synchronisation in java
+*******************************
+
+Q ) what is static syncronization why its needed
+
+Static synchronization is a mechanism in Java that ensures thread safety for shared static resources by locking at the class level instead of the object level. It is needed when multiple threads access static variables or methods, preventing race conditions and ensuring consistent results.
+
+🔑 What is Static Synchronization?
+	•	Synchronization: Controls access to shared resources among multiple threads.
+	•	Instance-level synchronization: Locks a single object, so threads accessing different instances may still cause conflicts.
+	•	Static synchronization: Applies a class-level lock, ensuring that only one thread can access a static synchronized method at a time, regardless of how many objects of the class exist.
+
+⚙️ Why is Static Synchronization Needed?
+	•	Shared static data: Static variables belong to the class, not individual objects. If multiple threads modify them simultaneously, data corruption can occur.
+	•	Consistency: Guarantees ordered and predictable execution when multiple threads interact with static members.
+	•	Thread safety: Prevents race conditions, deadlocks, and inconsistent states in multithreaded applications.
+
+📊 Comparison: Instance vs. Static Synchronization
+Feature
+Instance Synchronization
+Static Synchronization
+Lock type
+Object-level lock
+Class-level lock
+Scope
+One object at a time
+Entire class (all objects)
+Use case
+Protects instance fields
+Protects static fields/methods
+Thread safety
+Limited to one object
+Ensures safety across all objects
+Example
+synchronized void foo()
+static synchronized void bar()
+
+
+⚠️ Risks & Considerations
+	•	Performance impact: Synchronization can slow down execution since threads must wait for locks.
+	•	Deadlocks: Improper use of synchronization (static or instance) can lead to deadlocks if multiple locks are held simultaneously.
+	•	Best practice: Use synchronization only when necessary, and prefer synchronized blocks over whole methods to minimize lock contention.
+
+✅ Key Takeaway
+Static synchronization is essential when working with shared static resources in multithreaded environments. It ensures data integrity and thread safety by applying a class-level lock, but developers should use it carefully to avoid performance bottlenecks and deadlocks.
+Here’s a simple Java code example that demonstrates how static synchronization works and why it’s needed:
+java
+
+class Counter {
+    static int count = 0;
+
+    // Static synchronized method
+    public static synchronized void increment() {
+        count++;
+    }
+}
+
+class MyThread extends Thread {
+    public void run() {
+        for (int i = 0; i < 1000; i++) {
+            Counter.increment();
+        }
+    }
+}
+
+public class StaticSyncDemo {
+    public static void main(String[] args) throws InterruptedException {
+        MyThread t1 = new MyThread();
+        MyThread t2 = new MyThread();
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+
+        System.out.println("Final Count: " + Counter.count);
+    }
+}
+
+🔍 Explanation
+	•	Counter.count is a static variable shared by all threads.
+	•	increment() is declared as static synchronized, so only one thread at a time can execute it.
+	•	Without synchronization, multiple threads could update count simultaneously, leading to race conditions and incorrect results.
+	•	With static synchronization, the class-level lock ensures consistency across all threads.
+
+🧩 Why It’s Needed
+Imagine two threads both reading count = 5 at the same time.
+	•	Thread A increments → count = 6
+	•	Thread B increments → count = 6 (instead of 7, because it read the old value)
+This is a race condition. Static synchronization prevents this by forcing threads to take turns when accessing static members.
+=====================================
+
+What is DeadLock in java
+
+Deadlock in Java is a situation where two or more threads get stuck forever because each one is waiting for the other to release a resource. In simple words: threads are holding locks and waiting for each other, so the program freezes and never continues.
+
+🧩 What is Deadlock?
+	•	Definition: Deadlock happens in multithreading when threads are blocked permanently, each waiting for a resource held by another thread.
+	•	Result: The application stops responding because none of the threads can move forward.
+
+⚙️ How Deadlock Occurs
+Deadlock usually happens when:
+	1	Thread A locks Resource 1 and waits for Resource 2.
+	2	Thread B locks Resource 2 and waits for Resource 1.
+	3	Neither thread releases its lock → both are stuck forever.
+This creates a circular wait condition.
+
+📋 Necessary Conditions for Deadlock
+For a deadlock to occur, four conditions must exist:
+	1	Mutual Exclusion – Only one thread can use a resource at a time.
+	2	Hold and Wait – A thread holds one resource and waits for another.
+	3	No Preemption – Resources cannot be forcibly taken away.
+	4	Circular Wait – Threads form a cycle, each waiting for the next.
+
+🖥️ Simple Java Example
+java
+
+class Shared {
+    synchronized void method1(Shared s2) {
+        System.out.println(Thread.currentThread().getName() + " entered method1");
+        try { Thread.sleep(1000); } catch (InterruptedException e) {}
+        s2.method2(this); // waiting for other lock
+    }
+
+    synchronized void method2(Shared s1) {
+        System.out.println(Thread.currentThread().getName() + " entered method2");
+        try { Thread.sleep(1000); } catch (InterruptedException e) {}
+        s1.method1(this); // waiting for other lock
+    }
+}
+
+public class DeadlockDemo {
+    public static void main(String[] args) {
+        Shared s1 = new Shared();
+        Shared s2 = new Shared();
+
+        Thread t1 = new Thread(() -> s1.method1(s2), "Thread-1");
+        Thread t2 = new Thread(() -> s2.method2(s1), "Thread-2");
+
+        t1.start();
+        t2.start();
+    }
+}
+👉 Here, Thread-1 and Thread-2 wait for each other’s locks, causing a deadlock.
+
+🚨 How to Prevent Deadlock
+	•	Avoid Nested Locks: Don’t try to acquire a lock while holding another.
+	•	Lock Ordering: Always acquire locks in the same order across threads.
+	•	Timeouts: Use tryLock() with a timeout (from ReentrantLock) to avoid waiting forever.
+	•	Deadlock Detection Tools: Use thread dumps (jstack) or monitoring tools to detect deadlocks in running applications.
+
+✅ Key Takeaway
+Deadlock is one of the most common problems in multithreaded Java programs. It happens when threads wait on each other’s locks, creating a cycle. The best way to handle it is prevention—by careful design of lock usage, consistent ordering, and using modern concurrency utilities.
+Would you like me to also show you a real-world analogy (like two people blocking a narrow doorway) to make deadlock even easier to visualize?
+
+================================================
+
