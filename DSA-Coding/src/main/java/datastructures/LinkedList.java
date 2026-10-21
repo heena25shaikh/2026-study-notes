@@ -70,9 +70,10 @@ public class LinkedList {
             head = newNode;
             tail = newNode;
         } else {
-           /* Node temp = head;
-            head =newNode;
-            head.next = temp;*/
+            Node temp = head;
+            head = newNode;
+            head.next = temp;
+
             newNode.next = head;
             head = newNode;
         }
@@ -102,7 +103,6 @@ public class LinkedList {
     }
 
 
-
     //Remove FirstNode
     public Node removeFirstNode() {
         Node temp = head;
@@ -110,16 +110,12 @@ public class LinkedList {
             return null;
         } else {
             head = head.next;
-            temp.next=null;
+            temp.next = null;
             length--;
 
             //after decrementing length if there is no element left in linkedList
-            if(length==0){
-                temp = head;
-                temp.next=null;
-                head=null;
-                tail=null;
-                length--;
+            if (length == 0) {
+                tail = null;
             }
         }
         return temp;
@@ -141,5 +137,26 @@ public class LinkedList {
             printList();
         }
     }
+
+    /*public FindNthNodeFromEnd.LinkedList.Node findKthFromEnd(int k) {
+        //   +===================================================+
+        //   |               WRITE YOUR CODE HERE                |
+        //   | Description:                                      |
+        //   | - Finds the k-th node from the end of a singly    |
+        //   |   linked list.                                    |
+        //   | - Returns the node at that position or null if    |
+        //   |   `k` is invalid or exceeds the list length.      |
+        //   |                                                   |
+        //   | Behavior:                                         |
+        //   | - Uses two pointers, `fast` and `slow`, starting  |
+        //   |   at the head of the list.                        |
+        //   | - Moves `fast` forward `k` nodes ahead of `slow`. |
+        //   | - Then moves both pointers together until `fast`  |
+        //   |   reaches the end.                                |
+        //   | - At that point, `slow` points to the k-th node   |
+        //   |   from the end and is returned.                   |
+        //   +===================================================+
+}*/
+
 }
 

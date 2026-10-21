@@ -1,0 +1,112 @@
+**In Java, `synchronized`, `ReentrantLock`, and `ReadWriteLock` are all mechanisms for controlling concurrent access to shared resources. The key difference is that `synchronized` is simple and built into the language, `ReentrantLock` offers more advanced features like fairness and tryLock, and `ReadWriteLock` optimizes performance for read-heavy workloads.**   [Medium](https://medium.com/@priyaranjanpatraa/java-locks-explained-when-to-use-synchronized-reentrantlock-and-readwritelock-d0bf83c14370)  [TutorialsPoint](https://www.tutorialspoint.com/article/difference-between-reentrantlock-and-synchronized-in-java)  [stepupcareer.in](https://stepupcareer.in/code-forge/lessons/java-adv-jmm-synchronized-vs-lock)
+
+---
+
+## 🔹 1. Synchronized
+- **Definition**: A keyword in Java that locks an object’s intrinsic monitor.
+- **Features**:
+  - Built into the language.
+  - Automatically releases lock when method/block exits.
+  - Supports `wait()` and `notify()`.
+  - Reentrant (same thread can acquire lock multiple times).
+- **Example**:
+```java
+class Counter {
+    private int count = 0;
+    public synchronized void increment() {
+        count++;
+    }
+    public synchronized int value() {
+        return count;
+    }
+}
+```
+👉 Best for **simple mutual exclusion** with minimal overhead.
+
+---
+
+## 🔹 2. ReentrantLock
+- **Definition**: A class in `java.util.concurrent.locks` implementing the `Lock` interface.
+- **Features**:
+  - Explicit lock/unlock control.
+  - Supports `tryLock()`, timed lock, and interruptible lock acquisition.
+  - Can enforce **fairness** (first-come-first-served).
+  - Allows multiple condition variables.
+- **Example**:
+```java
+import java.util.concurrent.locks.ReentrantLock;
+
+class SharedResource {
+    private final ReentrantLock lock = new ReentrantLock();
+
+    void access() {
+        lock.lock();
+        try {
+            System.out.println(Thread.currentThread().getName() + " accessing resource");
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+```
+👉 Best when you need **fine-grained control** over locking.
+
+---
+
+## 🔹 3. ReadWriteLock
+- **Definition**: An interface providing two locks — one for reading and one for writing.
+- **Features**:
+  - Multiple readers can access simultaneously if no writer holds the lock.
+  - Writers get exclusive access.
+  - Useful for **read-heavy data structures**.
+- **Example**:
+```java
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+class Data {
+    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private int value;
+
+    void write(int v) {
+        rwLock.writeLock().lock();
+        try {
+            value = v;
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    int read() {
+        rwLock.readLock().lock();
+        try {
+            return value;
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
+}
+```
+👉 Best for **scenarios where reads vastly outnumber writes**.
+
+---
+
+## 🔹 Comparison Table
+
+| Aspect | **Synchronized** | **ReentrantLock** | **ReadWriteLock** |
+|--------|-----------------|-----------------|----------------|
+| **Type** | Keyword | Class (`Lock` interface) | Interface (`ReentrantReadWriteLock`) |
+| **Ease of Use** | Very simple | More complex | Moderate |
+| **Lock Release** | Automatic | Must call `unlock()` | Must call `unlock()` |
+| **Features** | Basic mutual exclusion | tryLock, fairness, multiple conditions | Separate read & write locks |
+| **Best Use Case** | Short critical sections | Advanced control, fairness | Read-heavy workloads |
+
+---
+
+## 🔹 Risks & Trade-offs
+- **Synchronized**: Simple but lacks advanced features.
+- **ReentrantLock**: Powerful but requires careful `unlock()` handling (risk of deadlock if forgotten).
+- **ReadWriteLock**: Great for read-heavy workloads, but overhead may outweigh benefits if writes are frequent.
+
+---
+
+Would you like me to also show you **real-world scenarios** (like banking transactions or e-commerce inventory systems) where each of these locks is typically applied?

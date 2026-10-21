@@ -9,7 +9,8 @@ See above video for more understanding.
 **************************************************************************
 
 Q 1) What is Shutdown hook in java
-A shutdown hook in Java is a special construct that lets you register a piece of code (usually a thread) to run when the Java Virtual Machine (JVM) is shutting down. It’s often used for cleanup tasks like closing resources, saving state, or logging final messages.
+A shutdown hook in Java is a special construct that lets you register a piece of code (usually a thread) to run when the Java Virtual Machine (JVM) is shutting down.
+It’s often used for cleanup tasks like closing resources, saving state, or logging final messages.
 
 🔑 Key Points
 	•	Definition: A shutdown hook is an initialized but unstarted thread that the JVM runs during its shutdown sequence.

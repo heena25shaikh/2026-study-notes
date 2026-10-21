@@ -1,0 +1,35 @@
+public Node findKthFromEnd(int k) {
+        //   +===================================================+
+        //   |               WRITE YOUR CODE HERE                |
+        //   | Description:                                      |
+        //   | - Finds the k-th node from the end of a singly    |
+        //   |   linked list.                                    |
+        //   | - Returns the node at that position or null if    |
+        //   |   `k` is invalid or exceeds the list length.      |
+        //   |                                                   |
+        //   | Behavior:                                         |
+        //   | - Uses two pointers, `fast` and `slow`, starting  |
+        //   |   at the head of the list.                        |
+        //   | - Moves `fast` forward `k` nodes ahead of `slow`. |
+        //   | - Then moves both pointers together until `fast`  |
+        //   |   reaches the end.                                |
+        //   | - At that point, `slow` points to the k-th node   |
+        //   |   from the end and is returned.                   |
+        //   +===================================================+
+
+        Node slow = head;
+        Node fast = head;
+
+        //Move fast pointer k-1 steps ahead
+
+        if(k-1 == 0) return tail; // if k is 1, return the last node (tail)
+
+        while (fast.next != null)
+        {
+            fast = fast + (k - 1);
+            slow = slow + 1;
+
+        }
+
+        return slow;
+    }
